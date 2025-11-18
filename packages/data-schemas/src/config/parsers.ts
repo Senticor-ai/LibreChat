@@ -59,7 +59,7 @@ function redactMessage(str: string, trimLength?: number): string {
  * @param info - The log information object.
  * @returns The modified log information object.
  */
-const redactFormat = winston.format((info: winston.Logform.TransformableInfo) => {
+const redactFormat = () => winston.format((info: winston.Logform.TransformableInfo) => {
   if (info.level === 'error') {
     // Type guard to ensure message is a string
     if (typeof info.message === 'string') {
@@ -212,7 +212,7 @@ const debugTraverse = winston.format.printf(
  * Truncates long string values in JSON log objects.
  * Prevents outputting extremely long values (e.g., base64, blobs).
  */
-const jsonTruncateFormat = winston.format((info: winston.Logform.TransformableInfo) => {
+const jsonTruncateFormat = () => winston.format((info: winston.Logform.TransformableInfo) => {
   const truncateLongStrings = (str: string, maxLength: number): string =>
     str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
 
