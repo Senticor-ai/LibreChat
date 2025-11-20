@@ -1,0 +1,77 @@
+# Infisical Operator Helm Values for LibreChat Deployment
+# Documentation: https://infisical.com/docs/integrations/platforms/kubernetes
+
+# ==============================================================================
+# OPERATOR CONFIGURATION
+# ==============================================================================
+
+# Namespace scoping for multi-tenant deployments (optional)
+# If set, operator only manages resources in this namespace
+# scopedNamespace: "librechat"
+# scopedRBAC: true
+
+# For additional namespaces, set installCRDs: false to avoid conflicts
+# installCRDs: true
+
+# ==============================================================================
+# SERVICE ACCOUNT CONFIGURATION
+# ==============================================================================
+
+controllerManager:
+  serviceAccount:
+    # Set to false if using custom service account
+    create: true
+    # Uncomment to use custom service account (requires chart version 0.10.11+)
+    # name: "infisical-operator"
+
+  manager:
+    image:
+      # Specify version for production stability
+      # tag: "v0.8.0"
+      repository: infisical/kubernetes-operator
+      pullPolicy: IfNotPresent
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ==============================================================================
+# GLOBAL CONFIGURATION (Optional)
+# ==============================================================================
+
+# To configure global settings for all InfisicalSecret CRDs, create a ConfigMap
+# named 'infisical-config' in the 'infisical-operator-system' namespace
+# with the following data:
+#
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: infisical-config
+#   namespace: infisical-operator-system
+# data:
+#   hostAPI: https://app.infisical.com/api  # Default for cloud
+#   # For self-hosted Infisical:
+#   # hostAPI: https://your-infisical.com/api
+#   # tls.caRef.secretName: custom-ca-certificate
+#   # tls.caRef.secretNamespace: default
+#   # tls.caRef.key: ca.crt
+
+# ==============================================================================
+# NOTES
+# ==============================================================================
+
+# Installation Command:
+#   helm repo add infisical-helm-charts 'https://dl.cloudsmith.io/public/infisical/helm-charts/helm/charts/'
+#   helm repo update
+#   helm install infisical-operator infisical-helm-charts/secrets-operator \
+#     -f infisical-operator-values.yaml \
+#     --namespace infisical-operator-system \
+#     --create-namespace
+
+# Uninstallation:
+#   helm uninstall infisical-operator --namespace infisical-operator-system
+#   Note: Managed secrets created by the operator will not be deleted automatically

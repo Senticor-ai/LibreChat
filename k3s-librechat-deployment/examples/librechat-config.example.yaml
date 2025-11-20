@@ -1,0 +1,237 @@
+# Example librechat.yaml configuration
+# This shows advanced configuration options you can add to librechat-values.yaml
+# Full documentation: https://www.librechat.ai/docs/configuration/librechat_yaml
+
+version: 1.2.1
+cache: true
+
+# ===========================================================================
+# INTERFACE CUSTOMIZATION
+# ===========================================================================
+
+interface:
+  # Privacy policy
+  privacyPolicy:
+    externalUrl: 'https://yourdomain.com/privacy'
+    openNewTab: true
+
+  # Terms of service
+  termsOfService:
+    externalUrl: 'https://yourdomain.com/tos'
+    openNewTab: true
+
+  # Customize the app title
+  # appTitle: "My Company AI Chat"
+
+# ===========================================================================
+# REGISTRATION & AUTHENTICATION
+# ===========================================================================
+
+registration:
+  # Allowed email domains for registration
+  # allowedDomains:
+  #   - "company.com"
+  #   - "example.org"
+
+  # Social login providers
+  socialLogins: ["google", "github"]
+
+# ===========================================================================
+# ENDPOINT CONFIGURATIONS
+# ===========================================================================
+
+endpoints:
+  # OpenAI Configuration
+  openAI:
+    titleModel: "gpt-4o-mini"
+    plugins: true
+    assistants: true
+    # Add additional models
+    # models:
+    #   - gpt-4o
+    #   - gpt-4-turbo
+    #   - gpt-3.5-turbo
+
+  # Anthropic Claude
+  anthropic:
+    titleModel: "claude-3-5-sonnet-20241022"
+    models:
+      - claude-3-5-sonnet-20241022
+      - claude-3-5-haiku-20241022
+      - claude-3-opus-20240229
+
+  # Google Gemini
+  google:
+    titleModel: "gemini-1.5-pro"
+    models:
+      - gemini-1.5-pro
+      - gemini-1.5-flash
+
+  # Azure OpenAI
+  azureOpenAI:
+    titleModel: "gpt-4o"
+    plugins: true
+    assistants: true
+    groups:
+      - group: "production"
+        apiKey: "${AZURE_API_KEY}"
+        instanceName: "my-azure-instance"
+        deploymentName: "gpt-4"
+        version: "2024-03-01-preview"
+        models:
+          gpt-4:
+            deploymentName: "gpt-4-deployment"
+          gpt-4o:
+            deploymentName: "gpt-4o-deployment"
+
+  # Custom endpoints (OpenRouter, Together AI, etc.)
+  custom:
+    # OpenRouter
+    - name: "OpenRouter"
+      apiKey: "${OPENROUTER_KEY}"
+      baseURL: "https://openrouter.ai/api/v1"
+      models:
+        default: ["anthropic/claude-3.5-sonnet", "openai/gpt-4o"]
+        fetch: true
+      titleConvo: true
+      titleModel: "anthropic/claude-3.5-sonnet"
+      summarize: false
+      summaryModel: "anthropic/claude-3.5-sonnet"
+      dropParams: ["stop", "user", "frequency_penalty", "presence_penalty"]
+
+    # Together AI
+    - name: "Together AI"
+      apiKey: "${TOGETHER_API_KEY}"
+      baseURL: "https://api.together.xyz/v1"
+      models:
+        default: [
+          "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+          "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+        ]
+        fetch: false
+      titleConvo: true
+      titleModel: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+
+    # Groq
+    - name: "Groq"
+      apiKey: "${GROQ_API_KEY}"
+      baseURL: "https://api.groq.com/openai/v1"
+      models:
+        default: [
+          "llama-3.1-70b-versatile",
+          "mixtral-8x7b-32768"
+        ]
+        fetch: false
+      titleConvo: true
+      titleModel: "llama-3.1-70b-versatile"
+
+# ===========================================================================
+# MCP (MODEL CONTEXT PROTOCOL) SERVERS
+# ===========================================================================
+
+mcpServers:
+  # Internal MCP backend
+  company-backend:
+    url: "http://mcp-service.mcp-backend.svc.cluster.local:8080"
+    name: "Company Backend"
+    description: "Internal MCP backend service"
+    # Optional: OAuth configuration
+    # oauth:
+    #   clientId: "${MCP_CLIENT_ID}"
+    #   clientSecret: "${MCP_CLIENT_SECRET}"
+    #   authorizationUrl: "https://auth.example.com/oauth/authorize"
+    #   tokenUrl: "https://auth.example.com/oauth/token"
+
+  # File system MCP server
+  filesystem:
+    url: "http://mcp-filesystem.mcp-backend.svc.cluster.local:8081"
+    name: "File System"
+    description: "Access to company file systems"
+
+# ===========================================================================
+# FILE STORAGE STRATEGIES
+# ===========================================================================
+
+fileStrategy:
+  # Specify storage strategy per file type
+  avatar: "s3"        # User/agent avatars
+  image: "firebase"   # Chat images
+  document: "local"   # PDFs, documents
+  video: "s3"         # Video files
+
+# ===========================================================================
+# MODEL SPECIFICATIONS
+# ===========================================================================
+
+# Define custom model specs
+# modelSpecs:
+#   custom:
+#     - name: "my-custom-model"
+#       maxContextTokens: 128000
+#       maxOutputTokens: 4096
+#       pricing:
+#         prompt: "0.0001"
+#         completion: "0.0002"
+
+# ===========================================================================
+# RATE LIMITING
+# ===========================================================================
+
+rateLimits:
+  # File uploads
+  fileUploads:
+    ipMax: 100
+    ipWindowInMinutes: 60
+    userMax: 50
+    userWindowInMinutes: 60
+
+  # Conversations
+  conversationsImport:
+    ipMax: 10
+    ipWindowInMinutes: 60
+    userMax: 5
+    userWindowInMinutes: 60
+
+# ===========================================================================
+# SECURITY & MODERATION
+# ===========================================================================
+
+# Text moderation
+# moderation:
+#   enabled: true
+#   provider: "openai"
+#   threshold: 0.9
+
+# Ban settings
+# ban:
+#   enabled: true
+#   violationCount: 3
+#   duration: 7200000  # 2 hours in milliseconds
+
+# ===========================================================================
+# BALANCE/CREDIT SYSTEM
+# ===========================================================================
+
+# balance:
+#   enabled: true
+#   tokenCreditRatio: 1000  # 1 credit = 1000 tokens
+#   initialBalance: 10000   # Starting balance for new users
+
+# ===========================================================================
+# AGENTS CONFIGURATION
+# ===========================================================================
+
+# agents:
+#   # Default agent settings
+#   defaults:
+#     provider: "openai"
+#     model: "gpt-4o"
+#
+#   # Pre-configured agents
+#   presets:
+#     - name: "Code Assistant"
+#       description: "Helps with programming tasks"
+#       provider: "anthropic"
+#       model: "claude-3-5-sonnet-20241022"
+#       instructions: "You are an expert programmer..."
+#       tools: ["execute_code", "file_search"]

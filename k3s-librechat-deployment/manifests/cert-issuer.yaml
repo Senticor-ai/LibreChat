@@ -1,0 +1,52 @@
+# Let's Encrypt ClusterIssuer for automatic SSL/TLS certificates
+# Requires cert-manager to be installed: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+#
+# This creates two issuers:
+# 1. letsencrypt-staging - for testing (higher rate limits)
+# 2. letsencrypt-prod - for production use
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # Let's Encrypt staging server (use for testing)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    # Email for expiration notifications
+    email: admin@example.com  # CHANGE THIS to your email
+
+    # Secret to store ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email for expiration notifications
+    email: admin@example.com  # CHANGE THIS to your email
+
+    # Secret to store ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+
+    # HTTP-01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx

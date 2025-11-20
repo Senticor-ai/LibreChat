@@ -1,0 +1,124 @@
+# Infisical Self-Hosted Standalone Helm Values
+# Documentation: https://infisical.com/docs/self-hosting/deployment-options/kubernetes-helm
+
+# ==============================================================================
+# INFISICAL IMAGE
+# ==============================================================================
+
+infisical:
+  image:
+    repository: infisical/infisical
+    # IMPORTANT: Use specific version tag, not "latest"
+    tag: "v0.46.2-postgres"  # Update to latest stable version
+    pullPolicy: IfNotPresent
+
+  # ==============================================================================
+  # RESOURCES
+  # ==============================================================================
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# ==============================================================================
+# INGRESS CONFIGURATION
+# ==============================================================================
+
+ingress:
+  nginx:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    host: infisical.example.com  # CHANGE THIS to your domain
+    tls:
+      enabled: true
+      secretName: infisical-tls
+
+# ==============================================================================
+# NGINX INGRESS (Disable sub-chart - use existing installation)
+# ==============================================================================
+
+ingress-nginx:
+  enabled: false
+
+nginx-ingress:
+  enabled: false
+
+# ==============================================================================
+# BUILT-IN POSTGRESQL (For PoC/Development)
+# ==============================================================================
+
+postgresql:
+  enabled: true
+  auth:
+    username: infisical
+    password: "CHANGE_ME_SECURE_PASSWORD"  # Generate with: openssl rand -base64 32
+    database: infisical
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+# ==============================================================================
+# BUILT-IN REDIS (For PoC/Development)
+# ==============================================================================
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "CHANGE_ME_SECURE_PASSWORD"  # Generate with: openssl rand -base64 32
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ==============================================================================
+# INFISICAL SECRETS (REQUIRED)
+# ==============================================================================
+# These will be created in a separate secret named 'infisical-secrets'
+# See manifests/infisical-standalone-secret.yaml
+
+# Example required secrets:
+# - AUTH_SECRET: openssl rand -base64 32
+# - ENCRYPTION_KEY: openssl rand -hex 16
+# - SITE_URL: https://infisical.yourdomain.com
+
+# ==============================================================================
+# PRODUCTION NOTES
+# ==============================================================================
+#
+# For production:
+# 1. Use external managed PostgreSQL and Redis:
+#    - Set postgresql.enabled: false
+#    - Set redis.enabled: false
+#    - Provide DB_CONNECTION_URI and REDIS_URL in infisical-secrets
+#
+# 2. Configure email (SMTP) for user invitations
+#
+# 3. Set up backups for PostgreSQL
+#
+# 4. Use multiple replicas for high availability:
+#    replicaCount: 3
+#
+# 5. Configure autoscaling

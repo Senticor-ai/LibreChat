@@ -1,0 +1,378 @@
+# LibreChat Helm Chart Values for k3s Deployment
+# Documentation: https://www.librechat.ai/docs/local/helm_chart
+# Chart Repository: oci://ghcr.io/danny-avila/librechat-chart/librechat
+
+# ==============================================================================
+# DEPLOYMENT CONFIGURATION
+# ==============================================================================
+
+replicaCount: 1
+
+# For high availability, increase replicas and enable autoscaling
+# replicaCount: 2
+# autoscaling:
+#   enabled: true
+#   minReplicas: 2
+#   maxReplicas: 5
+#   targetCPUUtilizationPercentage: 80
+
+# ==============================================================================
+# IMAGE CONFIGURATION
+# ==============================================================================
+
+image:
+  registry: ghcr.io
+  repository: danny-avila/librechat
+  pullPolicy: IfNotPresent
+  # tag: "" # Defaults to Chart appVersion (v0.8.1-rc1)
+
+# ==============================================================================
+# INGRESS CONFIGURATION
+# ==============================================================================
+
+ingress:
+  enabled: true
+  className: "nginx"  # Use nginx ingress controller
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"  # Max file upload size
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: chat.example.com  # CHANGE THIS to your domain
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: librechat-tls
+      hosts:
+        - chat.example.com  # CHANGE THIS to your domain
+
+# ==============================================================================
+# SERVICE CONFIGURATION
+# ==============================================================================
+
+service:
+  type: ClusterIP  # Internal service, exposed via Ingress
+  port: 3080
+  targetPort: 3080
+  containerPort: 3080
+
+# ==============================================================================
+# LIBRECHAT APPLICATION CONFIGURATION
+# ==============================================================================
+
+librechat:
+  # Environment variables for LibreChat
+  configEnv:
+    # Domain configuration (IMPORTANT: Change these to your actual domains)
+    DOMAIN_CLIENT: "https://chat.example.com"
+    DOMAIN_SERVER: "https://chat.example.com"
+
+    # Server configuration
+    HOST: "0.0.0.0"
+    PORT: "3080"
+    NODE_ENV: "production"
+
+    # Authentication settings
+    ALLOW_EMAIL_LOGIN: "true"
+    ALLOW_REGISTRATION: "true"  # Set to "false" to disable public registration
+    ALLOW_SOCIAL_LOGIN: "false"
+
+    # Session configuration
+    SESSION_EXPIRY: "900000"  # 15 minutes (in milliseconds)
+    REFRESH_TOKEN_EXPIRY: "604800000"  # 7 days (in milliseconds)
+
+    # Search configuration (MeiliSearch)
+    SEARCH: "true"
+    MEILI_HOST: "http://librechat-meilisearch:7700"
+    MEILI_NO_ANALYTICS: "true"
+
+    # MongoDB configuration (using sub-chart)
+    MONGO_URI: "mongodb://librechat-mongodb:27017/LibreChat"
+
+    # Plugin configuration
+    PLUGIN_MODELS: "gpt-4,gpt-4-turbo-preview,gpt-4-0125-preview,gpt-4-1106-preview,gpt-4-0613,gpt-3.5-turbo,gpt-3.5-turbo-0125,gpt-3.5-turbo-1106,gpt-3.5-turbo-0613"
+    DEBUG_PLUGINS: "true"
+
+    # File upload settings
+    FILE_UPLOAD_SIZE_LIMIT: "50"  # MB
+
+    # Security - IMPORTANT: These are placeholders. Actual values come from Secret
+    # CREDS_KEY: (from secret)
+    # CREDS_IV: (from secret)
+    # JWT_SECRET: (from secret)
+    # JWT_REFRESH_SECRET: (from secret)
+
+  # Reference to Kubernetes Secret containing sensitive credentials
+  existingSecretName: "librechat-credentials-env"
+
+  # LibreChat YAML configuration
+  # Full documentation: https://www.librechat.ai/docs/configuration/librechat_yaml
+  configYamlContent: |
+    version: 1.2.1
+    cache: true
+
+    # Interface customization
+    interface:
+      # Optional: Add privacy policy
+      # privacyPolicy:
+      #   externalUrl: 'https://yourdomain.com/privacy'
+      #   openNewTab: true
+
+      # Optional: Add terms of service
+      # termsOfService:
+      #   externalUrl: 'https://yourdomain.com/tos'
+      #   openNewTab: true
+
+    # Registration settings
+    # registration:
+    #   socialLogins: []  # e.g., ["google", "github"]
+
+    # MCP Servers Configuration (Model Context Protocol)
+    # Uncomment and configure when you add your custom MCP backend
+    # mcpServers:
+    #   my-backend:
+    #     url: "http://mcp-service.mcp-backend.svc.cluster.local:8080"
+    #     name: "Company Backend"
+    #     description: "Internal MCP backend service"
+    #     # Optional OAuth configuration
+    #     # oauth:
+    #     #   clientId: "${MCP_CLIENT_ID}"
+    #     #   clientSecret: "${MCP_CLIENT_SECRET}"
+    #     #   authorizationUrl: "https://auth.example.com/oauth/authorize"
+    #     #   tokenUrl: "https://auth.example.com/oauth/token"
+
+    # Endpoint configurations
+    # endpoints:
+    #   # Azure OpenAI example
+    #   azureOpenAI:
+    #     titleModel: "gpt-4o"
+    #     plugins: true
+    #     assistants: true
+    #     groups:
+    #       - group: "my-azure-resource"
+    #         apiKey: "${AZURE_API_KEY}"
+    #         instanceName: "my-instance"
+    #         deploymentName: "gpt-4"
+    #         version: "2024-03-01-preview"
+    #
+    #   # Custom endpoint example (e.g., OpenRouter, Together AI, etc.)
+    #   custom:
+    #     - name: "OpenRouter"
+    #       apiKey: "${OPENROUTER_KEY}"
+    #       baseURL: "https://openrouter.ai/api/v1"
+    #       models:
+    #         default: ["openai/gpt-3.5-turbo"]
+    #         fetch: true
+    #       titleConvo: true
+    #       titleModel: "gpt-3.5-turbo"
+
+  # Persistent volume for uploaded images
+  imageVolume:
+    enabled: true
+    size: 50Gi
+    accessModes: ReadWriteOnce
+    # storageClassName: ""  # Uses k3s default (local-path)
+
+# ==============================================================================
+# GLOBAL CONFIGURATION
+# ==============================================================================
+
+global:
+  librechat:
+    # Secret containing credentials
+    existingSecretName: "librechat-credentials-env"
+    # Primary API key reference (adjust if using Azure or other primary provider)
+    existingSecretApiKey: OPENAI_API_KEY
+
+    # Optional: Add extra environment variables from other secrets
+    # env:
+    #   - name: AZURE_API_KEY
+    #     valueFrom:
+    #       secretKeyRef:
+    #         name: azure-credentials
+    #         key: api_key
+
+# ==============================================================================
+# DEPENDENCY SUB-CHARTS
+# ==============================================================================
+
+# MongoDB Configuration (Bitnami Chart)
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: ""  # CHANGE THIS - set a strong password or reference a secret
+    # To use existing secret:
+    # existingSecret: "mongodb-credentials"
+  databases:
+    - LibreChat
+  persistence:
+    enabled: true
+    size: 50Gi
+    # storageClass: ""  # Uses k3s default (local-path)
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# MeiliSearch Configuration
+meilisearch:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""  # Uses k3s default (local-path)
+  image:
+    tag: "v1.7.3"
+  auth:
+    # Use the same secret as LibreChat for MEILI_MASTER_KEY
+    existingMasterKeySecret: "librechat-credentials-env"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# RAG API Configuration (optional - disabled by default)
+# Enable this if you want document retrieval and RAG features
+librechat-rag-api:
+  enabled: false
+  # embeddingsProvider: openai  # Options: azure, openai, huggingface, huggingfacetei
+  # resources:
+  #   requests:
+  #     cpu: 250m
+  #     memory: 512Mi
+
+# ==============================================================================
+# RESOURCE LIMITS
+# ==============================================================================
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+
+# ==============================================================================
+# AUTOSCALING
+# ==============================================================================
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# ==============================================================================
+# HEALTH CHECKS
+# ==============================================================================
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3080
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ==============================================================================
+# SECURITY
+# ==============================================================================
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# ==============================================================================
+# SERVICE ACCOUNT
+# ==============================================================================
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+# ==============================================================================
+# ADVANCED CONFIGURATION
+# ==============================================================================
+
+# Node selection
+nodeSelector: {}
+
+# Tolerations for pod scheduling
+tolerations: []
+
+# Pod affinity rules
+affinity: {}
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+
+# Additional volumes
+volumes: []
+
+# Additional volume mounts
+volumeMounts: []
+
+# Init containers (e.g., for database migrations)
+initContainers: {}
+
+# Lifecycle hooks
+lifecycle: {}
+
+# Pod annotations
+podAnnotations:
+  # Enable auto-reload when Infisical secrets are updated
+  # This triggers a rolling restart when managed secrets change
+  # Requires Infisical operator to be installed
+  secrets.infisical.com/auto-reload: "true"
+
+# Pod labels
+podLabels: {}
+
+# Deployment annotations
+deploymentAnnotations: {}
+
+# Deployment labels
+deploymentLabels: {}
+
+# DNS configuration (for custom DNS or proxy redirection)
+# See: helm/librechat/DNS_CONFIGURATION.md
+dnsPolicy: ""  # Options: ClusterFirst, Default, None, ClusterFirstWithHostNet
+dnsConfig: {}
+
+# Host aliases (for /etc/hosts entries, e.g., proxy redirection)
+hostAliases: []
+# Example for AWS Bedrock proxy:
+# hostAliases:
+#   - ip: "10.1.2.3"
+#     hostnames:
+#       - "bedrock-runtime.eu-central-1.amazonaws.com"
